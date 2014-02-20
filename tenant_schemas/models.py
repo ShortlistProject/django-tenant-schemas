@@ -3,7 +3,7 @@ from django.db import models, connection, transaction
 from django.core.management import call_command
 from tenant_schemas.postgresql_backend.base import _check_identifier
 from tenant_schemas.signals import post_schema_sync
-from tenant_schemas.utils import django_is_in_test_mode, schema_exists
+from tenant_schemas.utils import schema_exists, django_is_in_test_mode
 from tenant_schemas.utils import get_public_schema_name
 
 
@@ -74,7 +74,7 @@ class TenantMixin(models.Model):
         transaction.commit_unless_managed()
 
         if sync_schema:
-            call_command('sync_schemas',
+            call_command('syncdb',
                          schema_name=self.schema_name,
                          tenant=True,
                          public=False,
@@ -84,8 +84,10 @@ class TenantMixin(models.Model):
                          )
 
             # fake all migrations
-            if 'south' in settings.INSTALLED_APPS and not django_is_in_test_mode():
-                call_command('migrate_schemas', fake=True, schema_name=self.schema_name, verbosity=verbosity)
+            if ('south' in settings.INSTALLED_APPS
+                    and not django_is_in_test_mode()):
+                call_command('migrate', fake=True,
+                             schema_name=self.schema_name, verbosity=verbosity)
 
         connection.set_schema_to_public()
         return True
